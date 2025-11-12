@@ -1,0 +1,106 @@
+\documentclass[fleqn,compress,utf8,aspectratio=169,t]{beamer}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{xcolor}
+%\usepackage{enumitem}
+
+%\setbeamertemplate{bibliography item}{\insertbiblabel}
+
+\usetheme{CUONG}
+
+%\makeatletter
+%\setbeamertemplate{frametitle}{}
+%\makeatother
+
+
+% setup listings
+\lstset{
+    basicstyle=\ttfamily\color{black},
+    showstringspaces=flase
+}
+
+\lstdefinestyle{highlight}{
+    keywordstyle=\color{red},
+    commentstyle=\color{lmu@hyperlink}
+}
+
+\lstdefinestyle{basetex}{
+    language={[LaTeX]Tex},
+    basicstyle=\color{black!40},
+    keywordstyle=\color{red!40},
+    commentstyle=\color{lmu@hyperlink!40},
+    moredelim=**[il][\only<+>{\color{black}\lstset{style=highlight}}]{@}
+}
+
+\lstdefinestyle{basec}{
+    language=C,
+    basicstyle=\color{black!40},
+    keywordstyle=\color{red!40},
+    commentstyle=\color{green!40},
+    moredelim=**[il][\only<+>{\color{black}\lstset{style=highlight}}]{@}
+}
+
+%\newcommand{\code}[1]{{\small\fontfamily{Courier New}\selectfont #1}}
+%\newcommand{\code}[1]{{\sf #1}}
+\newcommand{\code}[1]{{\sl{#1}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                  Title Page Data                           %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% helper command to add multiple authors
+\newcommand{\newauthor}[2]{
+  \parbox[c]{0.4\textwidth}{
+  %\parbox[c]{0.26\textwidth}{
+        {\bfseries #1} \\
+        {\scriptsize{\href{mailto:#2}{#2}}}
+      }
+      %{#1}
+  }
+
+% Multiple Authors
+% If you have multiple authors simply use this command and adjust the width in
+% style/beamerinnertheme where the authors are rendered
+\author[Cuong Ngoc Tran]{
+    \newauthor{Cuong Tran}{} 
+    %\newauthor{Claas Lorenz, Marco Thomas \\[8pt] Maximilian Kapra, Felix Schebesta, Cuong Tran}{} 
+    %\newauthor{Cuong Tran \\[8pt] Felix Schebesta}{} %\and %ngoc_cuong_tran@genua.de
+    %\newauthor{Claas Lorenz \\[8pt] Marco Thomas}{} \and 
+    %\newauthor{Cuong Tran \\[8pt] Felix Schebesta}{} %\and %ngoc_cuong_tran@genua.de
+    %\newauthor{Marco Thomas}{} %\and %
+    %\newauthor{\underline{Cuong Ngoc Tran}}{mnm-team.org/$\sim$cuongtran} %\and 
+}
+
+
+%author{Cuong Ngoc Tran}
+%\institute[genua]{genua GmbH}
+\date[\today]{\today}
+
+\title{Selbstfürsorge}
+%\subtitle{Was \\Wie \\Warum}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                  Document                                  %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Overview %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{content}
+
+%hidden frame for references
+%\begin{frame}[noframenumbering]{References}
+\begin{frame}<presentation:0>[noframenumbering]
+%\nocite{han99}
+\nocite{danciu2016schichtung}
+\bibliographystyle{IEEEtran}
+\bibliography{paper}
+\end{frame}
+
+\end{document}

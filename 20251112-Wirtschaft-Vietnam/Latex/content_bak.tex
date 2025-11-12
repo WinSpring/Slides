@@ -1,0 +1,313 @@
+\begin{frame}{Experiment: Topology}
+
+\vspace{0.3cm}
+\includegraphics[width=0.5\textwidth]{topo_geekweek}
+\vspace{0.3cm}
+
+Switch S1 maintains the stateful connection from h1 to h2\\[2ex]
+
+Goal: h1 (client) can start talking to h2 (server), then h2 can talk back.\\
+\hspace*{5ex} h2 cannot start first.
+%Each device is a virtual machine, more details at: https://gitlab.genua.de/RES/infrastructure-as-code
+
+
+\end{frame}
+
+
+\begin{frame}{P4}
+\vspace{-1ex}
+P4: Programming Protocol-independent Packet Processors\\[2ex]
+
+{\centering
+\includegraphics[width=0.8\linewidth]{programming-p4-target}
+}
+\\[1ex]
+\tiny{The P4 language consortium : P4$_{16}$ Language Specification, July 2022,\\
+https://p4.org/p4-spec/docs/P4-16-v1.2.3.pdf. Version 1.2.3}
+
+\begin{onlyenv}<2>
+\normalsize
+\vspace{1ex}
+We can program a P4-switch to equip it with new functionalities %(instead of only configuring it as for a normal switch)
+\end{onlyenv}
+\end{frame}
+
+
+\begin{frame}{Motivation}
+
+\begin{itemize}[<+->]
+%\item We employ P4-based Software-defined Networking (SDN) for the testbed of the research project PROTECT, composed of a controller (control plane) centrally controlling multiple P4-switches (data plane)
+%\item Stateful connection from source A to destination B indicates that: A can initiate the connection to B, but B cannot. B can only answer or communicate with A once A has started that communication
+\item So far, we perform the state handling mainly in the controller. The rate of packet loss in the data plane can be high when the switch is waiting for instructions from the controller.
+\item In this small project, we want to share the tasks more appropriately between the controller and the switches, to increase the performance in packet processing and to reduce packet loss
+\item Existing research and implementation using Bloom Filter in the data plane shows promising results in state handling
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Bloom Filter}
+\begin{columns}%[c]
+\column{0.1\textwidth}
+\column{0.4\textwidth}
+\begin{onlyenv}<1>
+Given:
+\end{onlyenv}
+\begin{onlyenv}<2>
+\hspace{-1ex}Each element in set S is hashed using all hash functions into positions in the Bloom Filter, the corresponding bits at these positions are set (to 1)
+\end{onlyenv}
+\begin{onlyenv}<3->
+\hspace{-2ex}\textbf{Question:} Given an element \emph{e}, does it belong to the set \emph{S}? \\[2ex]
+\end{onlyenv}
+\begin{onlyenv}<4>
+\emph{e} does not belong to S if at least one of its hashing bits is 0. This conclusion is absolutely correct.
+\end{onlyenv}
+\begin{onlyenv}<5->
+\emph{e} belongs to S if all of its hashing bits are 1. This conclusion is subject to false positives with the probability of: 
+$f \approx (1-e^{-kn/m})^k $ \\
+%$$f=(1-(1-1/m)^{kn})^k \approx (1-e^{-kn/m})^k $$
+\end{onlyenv}
+\begin{onlyenv}<6>
+E.g., using the filter with\\m = $4.10^6$ cells (4 Megabit),\\k = 6 hash functions, the false positive rate for n = 100,000 flows is $\approx$ 0.0006401\%, which should be acceptable.
+\end{onlyenv}
+
+\column{0.6\textwidth}
+\vspace{-0.3cm}
+\noindent
+\begin{onlyenv}<1>
+\includegraphics[width=\textwidth]{bloom_filter_1}
+\end{onlyenv}
+\begin{onlyenv}<2>
+\includegraphics[width=\textwidth]{bloom_filter_2}
+\end{onlyenv}
+\begin{onlyenv}<3>
+\includegraphics[width=\textwidth]{bloom_filter_3}
+\end{onlyenv}
+\begin{onlyenv}<4>
+\includegraphics[width=\textwidth]{bloom_filter_4}
+\end{onlyenv}
+\begin{onlyenv}<5->
+\includegraphics[width=\textwidth]{bloom_filter_5}
+\end{onlyenv}
+\column{0.2\textwidth}
+\end{columns}
+\end{frame}
+ 
+
+
+\begin{frame}{Approach: using the Bloom Filter (1)}
+\begin{columns}
+\column{0.5\textwidth}
+
+Goal: h1 can start talking to h2, then h2 can talk back. h2 cannot start first.
+
+\vspace{2ex}
+
+\includegraphics<1>[width=\textwidth]{topo_geekweek_1}
+\includegraphics<2>[width=\textwidth]{topo_geekweek_2}
+
+
+\column{0.5\textwidth}
+\vspace{1ex}
+\includegraphics<2>[width=\textwidth]{bloom_filter_apply_1}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Approach: using the Bloom Filter (2)}
+%Approach 1: using the Bloom Filter purely in the switch
+%\vspace{-2ex}
+\begin{itemize}[<+->]
+\item Advantage: the Bloom Filter uses very low memory footprint
+%\item Using the Bloom Filter to mark traffic flows initiated from h1 to h2 based on the tuple (IP src, IP dst, IP protocol, L4 src, L4 dst), traffic in this direction is always allowed.
+%\item Traffic from h2 to h1 is always checked against the Bloom Filter based on the tuple (IP dst, IP src, IP protocol, L4 dst, L4 src). If the tuple is marked in the Bloom Filter, the corresponding traffic is allowed, otherwise it is dropped.
+\item Test with iperf: the reported packet loss is 0. Compared to the state handling in the controller, the same test reports 5 to 10 lost packets in normal case, in the worst case when the controller is busy, the packet loss can be up to 100\%.
+\end{itemize}
+\begin{onlyenv}<3>
+$\Rightarrow$ Offloading of state handling in the data plane shows better performance
+\end{onlyenv}
+\end{frame}
+ 
+
+%\begin{frame}{Approach: using the Bloom Filter (2)}
+%Approach 1: using the Bloom Filter purely in the switch
+%
+%This approach has been implemented by the network group NSG-ETHZ for the mininet simulator (https://github.com/nsg-ethz/p4-learning/tree/master/examples/stateful\_firewall). We have adapted it for our testbed in this geekweek project. It works fine.
+%
+%Test with iperf: the reported packet loss is 0. Compared to the state-handling in the controller, the same test reports 5 to 10 lost packets in normal case, in the worst case when the controller is busy, the packet loss can be up to 100\%.
+%
+%$\Rightarrow$ Offloading of state handling in the data plane shows better performance
+%
+%\end{frame}
+
+
+\begin{frame}{Problem}
+
+\vspace{-1ex}
+
+Bloom Filters are subject to false positives: if it says an element belongs to a set, it can be wrong with some probability.
+
+The false positive rate $f$ is defined by: % the following formula:
+$f \approx (1-e^{-kn/m})^k $
+
+\vspace{1ex}
+
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+& \# traffic flows & \# hash functions & \# bits in Bloom Filter & False Positive \\
+& (n) & (k) & (m) & Rate \\
+%\cline{4-8}
+\hline
+1 & 1000 	& 2 & 4096 (4Kb)& 15\%	 \\ 
+\hline  
+2 & 10,000 	& 2 & 4096 (4Kb)& 98.5\% \\ 
+\hline
+3 & 100,000 & 2 & 4096 (4Kb)& 100\% \\ 
+\hline
+4 & 100,000 & 2 & 4.$10^6$ (4Mb) & 0.23\% \\ 
+\hline
+5 & 100,000 & 6 & 4.$10^6$ (4Mb) & 0.0006401\% \\ 
+\hline
+6 & 1,000,000 & 6 & 4.$10^6$ (4Mb) & 20.7\% \\ 
+\hline
+\end{tabular}
+
+\vspace{1ex}
+
+\begin{onlyenv}<2->
+$\Rightarrow$ How to reduce this false positive rate?\\
+\end{onlyenv}
+\begin{onlyenv}<3>
+We propose another approach to reduce further the false positive rate with the help of the control plane
+\end{onlyenv}
+
+\end{frame}
+
+%\begin{frame}{Problem with approach 1}
+%A Bloom Filter is used to check if an element blongs to a set. The parameters include: the number of elements in the set (n), the number of hash functions (k), and the size of the filter (m).
+%
+%If a bloom filter concludes that an element does not belong to the set, it is absolutely true (true negative rate is 100\%)
+%
+%However, Bloom Filters are subject to false positives: if it says an element belongs to a set, it can be wrong with some probability.
+%
+%The false positive rate f is defined by the following formula:
+%$$f=(1-(1-1/m)^{kn})^k \approx (1-e^{-kn/m})^k $$
+%
+%With n = 1000 TCP traffic flows, k = 2 hash functions, and m = 4096 cells (4Kb - kilobit) in the Bloom Filter, the false positive rate is $\approx$ 15\%. If we have 10.000 flows, the false positive rate is $\approx$ 98,5\%. The rate for 100.000 flows is $\approx$ 100\% !
+%
+%How to reduce this false positive rate?
+%\end{frame}
+
+
+%\begin{frame}{Problem with approach 1}
+%
+%With n = 1000 TCP traffic flows, k = 2 hash functions, and m = 4096 cells (4Kb - kilobit) in the Bloom Filter, the false positive rate is $\approx$ 15\%. If we have 10.000 flows, the false positive rate is $\approx$ 98,5\%. The rate for 100.000 flows is $\approx$ 100\% !
+%
+%How to reduce the false positive rate?
+%
+%We can increase the size of the filter, the number of hash functions. E.g., if the size of the filter m = 4.096.000 cells (4Mb - Megabit), k = 6 hash functions, the false positive rate for 100.000 flows is $\approx$ 0.0006401\%, which should be acceptable.
+%
+%We propose another approach to reduce further the false positive rate with the help of the control plane.
+%\end{frame}
+
+
+\begin{frame}{Proposed approach}
+
+\begin{itemize}[<+->]
+\item Observation: the more set bits the Bloom Filter has, the higher the false positive rate is
+\item For each new traffic flow, the switch handles the first packets using the Bloom Filter, and notifies the controller of these new packets and the set bits in the filter
+\item An additional rule table with idle timeout is employed to allow the traffic that has been allowed by the Bloom Filter, the bits in the filter according to that traffic are reset (to 0) $\Rightarrow$ reduce the number of set bits in the filter
+\item This rule table has higher priority than the Bloom Filter and is controlled by the controller. If a packet is not matched by this table, then the bloom filter will be used.
+\item Idle timeout means if a rule does not match any traffic for a timeout period, it will be removed. It helps maintain the rule table in retaining only necessary rules, reduce the searching time for packet matching.
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}{Conclusion}
+\begin{itemize}[<+->]
+\item Offloading the state handling from the control plane to the data plane using Bloom Filter in a P4-switch is possible $\Rightarrow$  reduce packet loss, boost the communication establishment (compared to state handling purely in the control plane)
+\item Bloom Filter is subject to false positives $\Rightarrow$ can wrongly identify a packet to belong to an already established communication (while it is not)
+\item Our proposed approach is to share the task between the control plane and the data plane to minimize the false positive rate $\Rightarrow$ still need to be implemented and evaluated
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Links and references}
+\begin{itemize}
+%\item Confluence page: https://confluence.genua.de/x/iolJF
+%\item gitlab-repository: https://gitlab.genua.de/ctran/geekweek/-/tree/main/202407-state-P4
+\item https://github.com/nsg-ethz/p4-learning/tree/master/examples/stateful\_firewall
+\item K. Xie et al., "A Stateful Bloom Filter for Per-Flow State Monitoring," in IEEE Transactions on Network Science and Engineering, vol. 8, no. 2, pp. 1399-1413, 1 April-June 2021, doi: 10.1109/TNSE.2021.3057459
+\item https://github.com/mnm-team/p4-sdn/tree/main/explaining\_SDN
+\end{itemize}
+\end{frame}
+
+
+%\begin{frame}<presentation:0>[noframenumbering]{Backup}
+\begin{frame}[noframenumbering]{Backup}
+\end{frame}
+
+
+\begin{frame}[noframenumbering]{Approach: using the Bloom Filter (2)}
+%Approach 1: using the Bloom Filter purely in the switch
+\vspace{-2ex}
+\begin{itemize}%[<+->]
+\item Advantage: the Bloom Filter uses very low memory footprint.
+\item Using the Bloom Filter to mark traffic flows initiated from h1 to h2 based on the tuple (IP src, IP dst, IP protocol, L4 src, L4 dst), traffic in this direction is always allowed.
+\item Traffic from h2 to h1 is always checked against the Bloom Filter based on the tuple (IP dst, IP src, IP protocol, L4 dst, L4 src). If the tuple is marked in the Bloom Filter, the corresponding traffic is allowed, otherwise it is dropped.
+\item Test with iperf: the reported packet loss is 0. Compared to the state-handling in the controller, the same test reports 5 to 10 lost packets in normal case, in the worst case when the controller is busy, the packet loss can be up to 100\%.
+\end{itemize}
+\begin{onlyenv}%<5>
+$\Rightarrow$ Offloading of state handling in the data plane shows better performance
+\end{onlyenv}
+\end{frame}
+ 
+
+\begin{frame}[noframenumbering]{Approach 2 (with support from the control plane)}
+
+\scriptsize
+The work flow is as follows:
+
+A packet arrives at the switch, the switch checks for a match in its rule table. If matched, the packet is handled (forwarded or dropped) according to the matching rule in that table. If not, the bloom filter is checked.
+
+The Bloom Filter determines the direction of the packet based on its ingress port, or its source IP address (or other header fields). It allows the packet, applies the hash function on that packet, and sets the corresponding bits in the filter if the direction is always allowed (from h1 to h2 in our case). The switch notifies the controller of this packet, and the set bits corresponding to that packet.
+
+In case of the reverse direction (from h2 to h1), the Bloom Filter applies the hash functions on the packet and checks if the corresponding bits are set, if yes, it is an answering packet and is allowed. Otherwise, that packet is dropped.
+
+The controller receives the notification of the packet and the set bits, it installs rules in both direction (h1 to h2, and h2 to h1) in the forwarding rule table (with timeout), and resets these bits.
+
+The subsequent packets of the same traffic flow will be handled by rules in the rule tables, just installed by the controller. The Bloom Filter has less set bits after the controller resets some of them. The false positive rate is therefore reduced.
+\end{frame}
+
+
+\begin{frame}[noframenumbering]{Problem with approach 2}
+\scriptsize
+
+There can be the case, that the same bit is set for two (or more) different traffic flows. The controller is notified of the first flow, installs rules for this flow and resets the bit, while the controller has not been notified of the second flow (e.g., due to the race condition).
+
+Traffic of the second flow is allowed by the Bloom Filter on the allowed direction (h1 to h2), but on the answering direction (h2 to h1), as the corresponding bit was reset by the controller, the Bloom Filter falsely determines that this packet does not belong to an allowed flow and drops it. 
+
+This can happen in a very short moment between the time that the controller resets the bits in reaction to the first flow's notification, and that h2 is answering h1. The consequence is not serious, because h1 after some timeout, can resend the request to h2, which sets the bits again in the bloom filter (after being reset by the controller), then the answer from h2 will be allowed. %The number of dropped packets for a flow can be up to 3 in case of a TCP flow (with 3 ACK for a request), or 1 in case of UDP, this can be not true, it depends on the application's behaviour.
+
+Still, this approach is to be implemented
+%We have not implemented the second approach successfully during geekweek, it requires more time for implementation.
+\end{frame}
+
+\begin{frame}[noframenumbering]{Network functionality in layers}
+\begin{center}
+\includegraphics[width=0.7\linewidth]{component-planes}
+\\[8pt]
+\tiny{Danciu, Vitalian: Skriptum zu den einführenden Sitzungen des Masterseminars zu Trends in Netzen: \\ Software-Defined Networks and Network Function Virtualization, 2015}
+\end{center}
+\end{frame}
+
+%%hidden frame for references
+%\begin{frame}{References}
+%%\begin{frame}<presentation:0>[noframenumbering]
+%\begin{itemize}
+%\item H. Song et al, ``Network telemetry framework'', https://www.rfc-editor.org/rfc/rfc9232.pdf
+%\item P4.org working group, ``In-band nework telemtry (INT) dataplane specification'', https://p4.org/p4-spec/docs/INT\_v2\_1.pdf
+%\item https://github.com/p4lang/tutorials/tree/master/exercises/link\_monitor
+%\end{itemize}
+%\end{frame}

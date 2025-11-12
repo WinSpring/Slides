@@ -1,0 +1,22 @@
+The existing template from the Chair of Hegering, is adapted by Cuong.
+Note: the genua template requires fonts in Styles/fonts, before compiling with "make" in the Latex directory, copy these fonts into the $HOME directory by this command:
+
+cp -r Styles/fonts ~/fonts-g20
+
+The following instructions are additionally helpful.
+
+
+1) Text in ./Latex ablegen
+2) Bilder in ./Bilder ablegen
+3) ./Latex/main.tex editieren (insbesondere eigenen Text \input-ten)
+4) make [ main.ps | main.pdf ] eingeben
+5) make (clean | distclean) schaffen wider etwas Ordnung.
+
+- Bilder sollten in mehreren Formaten unterstützt sein, etwa: Vektorgraphiken
+(.eps, .fig, ...) oder Bitmaps (.jpg, .png, .gif ...)
+
+- Literaturangaben sollten in ./Bib/paper.bib landen
+
+
+Credits: Der Rahmen basiert auf früheren Arbeiten am LS
+Hegering, insbesondere sind's Harrys Makefiles and Vitalian Danciu
